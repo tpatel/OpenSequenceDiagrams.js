@@ -70,11 +70,18 @@ function actor(x, y, height, text) {
 	return r;
 }
 
-function arrow(x, y, width, text, isToTheRight, isDotted) {
+function arrow(x, y, width, text, isToTheRight, isDotted, isToSelf) {
 	var r = '<g transform="translate('+x+','+y+')">';
 	var lineY = 7+(text.length-1)*20;
-	r+= drawLine(0, lineY, 110*width, lineY, isDotted);
-	r+= drawTriangle((isToTheRight ? 110*width : 0), lineY, isToTheRight);
+	if(isToSelf) {
+		r+= drawLine(0, lineY, 30, lineY, isDotted);
+		r+= drawLine(30, lineY, 30, lineY+20, isDotted);
+		r+= drawLine(30, lineY+20, 0, lineY+20, isDotted);
+		r+= drawTriangle(0, lineY+20, false);
+	} else {
+		r+= drawLine(0, lineY, 110*width, lineY, isDotted);
+		r+= drawTriangle((isToTheRight ? 110*width : 0), lineY, isToTheRight);
+	}
 	for(var i in text) {
 		r+= drawText(110*width/2, i*20, text[i]);
 	}
@@ -107,6 +114,10 @@ function Signal(participant1, participant2, text, isDotted) {
 	this.isDotted = isDotted;
 	this.position = 0;
 	this.height = this.text.length*20+10;
+	if(participant1.name == participant2.name) {
+		this.height += 20;
+	}
+	
 	
 	this.getSVG = function() {
 		var minPosition = Math.min(this.participant1.position,
@@ -117,7 +128,8 @@ function Signal(participant1, participant2, text, isDotted) {
 					- this.participant2.position),
 				this.text,
 				minPosition == this.participant1.position,
-				this.isDotted);
+				this.isDotted,
+				participant1.name == participant2.name);
 	}
 }
 
