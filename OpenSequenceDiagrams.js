@@ -72,9 +72,12 @@ function actor(x, y, height, text) {
 
 function arrow(x, y, width, text, isToTheRight, isDotted) {
 	var r = '<g transform="translate('+x+','+y+')">';
-	r+= drawLine(0, 7, 110*width, 7, isDotted);
-	r+= drawTriangle((isToTheRight ? 110*width : 0), 7, isToTheRight);
-	r+= drawText(110*width/2, 0, text);
+	var lineY = 7+(text.length-1)*20;
+	r+= drawLine(0, lineY, 110*width, lineY, isDotted);
+	r+= drawTriangle((isToTheRight ? 110*width : 0), lineY, isToTheRight);
+	for(var i in text) {
+		r+= drawText(110*width/2, i*20, text[i]);
+	}
 	r+='</g>';
 	return r;
 }
@@ -84,14 +87,12 @@ function arrow(x, y, width, text, isToTheRight, isDotted) {
 
 function Participant(name, text) {
 	this.name = name;
-	//alert(name + "#"+ name.split("\n") +"#"+ text);
 	if(text == undefined) {
 		this.text = name.split("\\n");
 	} else {
 		this.text = text.split("\\n");
 	}
-	//alert(name +"#"+text);
-	this.height = this.text.length*20+10;
+	this.height = this.text.length*20+10+30;
 	this.position = 0;
 	
 	this.getSVG = function(height) {
@@ -102,18 +103,19 @@ function Participant(name, text) {
 function Signal(participant1, participant2, text, isDotted) {
 	this.participant1 = participant1;
 	this.participant2 = participant2;
-	this.text = text;
+	this.text = text.split("\\n");
 	this.isDotted = isDotted;
 	this.position = 0;
+	this.height = this.text.length*20+10;
 	
-	this.getSVG = function(maxHeight) {
+	this.getSVG = function() {
 		var minPosition = Math.min(this.participant1.position,
 				this.participant2.position);
 		return arrow(minPosition*110+5+50,
-				this.position*30+maxHeight+30,
+				this.position,
 				Math.abs(this.participant1.position
 					- this.participant2.position),
-				text,
+				this.text,
 				minPosition == this.participant1.position,
 				this.isDotted);
 	}
@@ -170,7 +172,6 @@ function Schema() {
 			var found = this.parseLine(tab[i]);
 			if(!found) {
 				retour += 'E: line ' + (parseInt(i)+1) + ' (' + tab[i] + ')<br/>';
-				//alert('E: line ' + (parseInt(i)+1) + " (" + tab[i] + ")");
 			}
 		}
 		return retour;
@@ -197,30 +198,32 @@ function Schema() {
 		var svg = '';
 		
 		//Calculate the height
-		var maxHeight = 0;
+		var heightParticipants = 0;
 		for(var i in this.participants) {
-			if(this.participants[i].height > maxHeight) {
-				maxHeight = this.participants[i].height;
+			if(this.participants[i].height > heightParticipants) {
+				heightParticipants = this.participants[i].height;
 			}
 		}
-		var heightSignals = (this.signals.length+1)*30;
-		height = maxHeight + heightSignals;
-		
+		var height = heightParticipants;
+		for(var i in this.signals) {
+			this.signals[i].position = height;
+			height += this.signals[i].height;
+		}
 		
 		for(var i in this.participants) {
 			this.participants[i].position = i;
 			svg += this.participants[i].getSVG(height);
 		}
+		height += heightParticipants;
 		for(var i in this.signals) {
-			this.signals[i].position = i;
-			svg += this.signals[i].getSVG(maxHeight);
+			svg += this.signals[i].getSVG();
 		}
 		
 		var finalSVG =
 			'<svg  xmlns="http://www.w3.org/2000/svg" version="1.1" width="'
 			+ (this.participants.length * 110)
 			+ '" height="'
-			+ (height+maxHeight + 10)
+			+ (height + 10)
 			+ '">';
 		finalSVG += '<defs>';
 		finalSVG += gradient('grad1');
