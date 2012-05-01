@@ -92,12 +92,16 @@ function arrow(x, y, width, text, isToTheRight, isDotted, isToSelf) {
 
 //Model -----------------------------------------------------------------------
 
+function filter(text) {
+	return text.replace(/&/g, "&amp;").replace(/>/g, "&gt;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
+}
+
 function Participant(name, text) {
-	this.name = name;
+	this.name = filter(name);
 	if(text == undefined) {
-		this.text = name.split("\\n");
+		this.text = filter(name).split("\\n");
 	} else {
-		this.text = text.split("\\n");
+		this.text = filter(text).split("\\n");
 	}
 	this.height = this.text.length*20+10+30;
 	this.position = 0;
@@ -110,7 +114,7 @@ function Participant(name, text) {
 function Signal(participant1, participant2, text, isDotted) {
 	this.participant1 = participant1;
 	this.participant2 = participant2;
-	this.text = text.split("\\n");
+	this.text = filter(text).split("\\n");
 	this.isDotted = isDotted;
 	this.position = 0;
 	this.height = this.text.length*20+10;
