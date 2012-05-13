@@ -15,6 +15,11 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+//Constansts ------------------------------------------------------------------
+
+var partSize = 125; //Participant width
+var interPart = 25; //Horizontal interval between 2 participants
+
 //SVG functions ---------------------------------------------------------------
 
 function drawText(x, y, text) {
@@ -50,7 +55,7 @@ function drawTriangle(x, y, isToTheRight) {
 }
 
 function gradient(id) {
-	return '<linearGradient id="' + id + '" x1="0%" y1="0%" x2="100%" y2="100%">'
+	return '<linearGradient id="' + id + '" x1="0%" y1="0%" x2="0%" y2="100%">'
 			+ '<stop offset="0%" style="stop-color:rgb(200, 200, 200);stop-opacity:1"></stop>'
 			+ '<stop offset="100%" style="stop-color:rgb(100,100,100);stop-opacity:1"></stop>'
 			+ '</linearGradient>'
@@ -59,12 +64,12 @@ function gradient(id) {
 function actor(x, y, height, text) {
 	var end = text.length * 20 + 10;
 	var r = '<g transform="translate('+x+','+y+')">';
-	r+= drawLine(50, end, 50, height);
-	r+= drawRect(0, 0, 100, end, 5);
-	r+= drawRect(0, height, 100, end, 5);
+	r+= drawLine(partSize/2, end, partSize/2, height);
+	r+= drawRect(0, 0, partSize, end, 5);
+	r+= drawRect(0, height, partSize, end, 5);
 	for(var i in text) {
-		r+= drawText(50, i*20+20, text[i]);
-		r+= drawText(50, height+i*20+20, text[i]);
+		r+= drawText(partSize/2, i*20+20, text[i]);
+		r+= drawText(partSize/2, height+i*20+20, text[i]);
 	}
 	r+='</g>';
 	return r;
@@ -79,11 +84,11 @@ function arrow(x, y, width, text, isToTheRight, isDotted, isToSelf) {
 		r+= drawLine(30, lineY+20, 0, lineY+20, isDotted);
 		r+= drawTriangle(0, lineY+20, false);
 	} else {
-		r+= drawLine(0, lineY, 110*width, lineY, isDotted);
-		r+= drawTriangle((isToTheRight ? 110*width : 0), lineY, isToTheRight);
+		r+= drawLine(0, lineY, (partSize+interPart)*width, lineY, isDotted);
+		r+= drawTriangle((isToTheRight ? (partSize+interPart)*width : 0), lineY, isToTheRight);
 	}
 	for(var i in text) {
-		r+= drawText(110*width/2, i*20, text[i]);
+		r+= drawText((partSize+interPart)*width/2, i*20, text[i]);
 	}
 	r+='</g>';
 	return r;
@@ -107,7 +112,7 @@ function Participant(name, text) {
 	this.position = 0;
 	
 	this.getSVG = function(height) {
-		return actor(110*this.position+5, 5, height, this.text);
+		return actor((partSize+interPart)*this.position+5, 5, height, this.text);
 	}
 }
 
@@ -128,7 +133,7 @@ function Signal(participant1, participant2, text, isDotted) {
 	this.getSVG = function(position) {
 		var minPosition = Math.min(this.participant1.position,
 				this.participant2.position);
-		return arrow(minPosition*110+5+50,
+		return arrow(minPosition*(partSize+interPart)+5+partSize/2,
 				position,
 				Math.abs(this.participant1.position
 					- this.participant2.position),
@@ -260,7 +265,7 @@ function Schema() {
 		
 		var finalSVG =
 			'<svg  xmlns="http://www.w3.org/2000/svg" version="1.1" width="'
-			+ (this.participants.length * 110)
+			+ (this.participants.length * (partSize+interPart))
 			+ '" height="'
 			+ (height + 10)
 			+ '">';
