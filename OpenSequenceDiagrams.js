@@ -116,18 +116,20 @@ function Signal(participant1, participant2, text, isDotted) {
 	this.participant2 = participant2;
 	this.text = filter(text).split("\\n");
 	this.isDotted = isDotted;
-	this.position = 0;
 	this.height = this.text.length*20+10;
 	if(participant1.name == participant2.name) {
 		this.height += 20;
 	}
 	
+	this.getHeight = function() {
+		return this.height;
+	}
 	
-	this.getSVG = function() {
+	this.getSVG = function(position) {
 		var minPosition = Math.min(this.participant1.position,
 				this.participant2.position);
 		return arrow(minPosition*110+5+50,
-				this.position,
+				position,
 				Math.abs(this.participant1.position
 					- this.participant2.position),
 				this.text,
@@ -137,9 +139,35 @@ function Signal(participant1, participant2, text, isDotted) {
 	}
 }
 
+function Container() {
+	this.children = [];
+	this.height = 0;
+	
+	this.addSignal = function(signal) {
+		this.children.push(signal);
+	}
+	
+	this.getHeight = function() {
+		var height = this.height;
+		for(var i in this.children) {
+			height += this.children[i].getHeight();
+		}
+		return height;
+	}
+	
+	this.getSVG = function(position) {
+		var svg = "";
+		for(var i in this.children) {
+			svg += this.children[i].getSVG(position);
+			position += this.children[i].getHeight();
+		}
+		return svg;
+	}
+}
+
 function Schema() {
 	this.participants = [];
-	this.signals = [];
+	this.signals = new Container();
 	this.patterns = [
 		['[ \t]*participant[ ]*"([^"]*)"[ ]*as[ ]*"?([^"]*)"?',
 			2,
@@ -169,7 +197,7 @@ function Schema() {
 	}
 	
 	this.addSignal = function(signal) {
-		this.signals.push(signal);
+		this.signals.addSignal(signal);
 	}
 	
 	this.getParticipant = function(name) {
@@ -221,19 +249,14 @@ function Schema() {
 			}
 		}
 		var height = heightParticipants;
-		for(var i in this.signals) {
-			this.signals[i].position = height;
-			height += this.signals[i].height;
-		}
+		height += this.signals.getHeight();
 		
 		for(var i in this.participants) {
 			this.participants[i].position = i;
 			svg += this.participants[i].getSVG(height);
 		}
 		height += heightParticipants;
-		for(var i in this.signals) {
-			svg += this.signals[i].getSVG();
-		}
+		svg += this.signals.getSVG(heightParticipants);
 		
 		var finalSVG =
 			'<svg  xmlns="http://www.w3.org/2000/svg" version="1.1" width="'
