@@ -26,14 +26,14 @@ function drawText(x, y, text) {
 	return '<text x="'+x+'" y="'+ y + '" style="text-anchor:middle;">'+text+'</text>';
 }
 
-function drawRect(x, y, width, height, ry) {
+function drawRect(x, y, width, height, ry, gradient) {
 	return '<rect'
 			+ ' x="' + x
 			+ '" y="' + y
 			+ '" width="' + width
 			+ '" height="' + height
 			+ '" ry="' + ry
-			+ '" style="fill:url(#grad1);stroke:black;stroke-width:2;" ></rect>';
+			+ '" style="fill:' + (gradient ? 'url(#grad1)' : 'white') + ';stroke:black;stroke-width:2;" ></rect>';
 }
 
 function drawLine(x1, y1, x2, y2, isDotted) {
@@ -65,11 +65,18 @@ function actor(x, y, height, text) {
 	var end = text.length * 20 + 10;
 	var r = '<g transform="translate('+x+','+y+')">';
 	r+= drawLine(partSize/2, end, partSize/2, height);
-	r+= drawRect(0, 0, partSize, end, 5);
-	r+= drawRect(0, height, partSize, end, 5);
+	r += rectWithText(0, 0, text, true);
+	r += rectWithText(0, height, text, true);
+	r+='</g>';
+	return r;
+}
+
+function rectWithText(x, y, text, gradient) {
+	var end = text.length * 20 + 10;
+	var r = '<g transform="translate('+x+','+y+')">';
+	r+= drawRect(0, 0, partSize, end, 5, gradient);
 	for(var i in text) {
 		r+= drawText(partSize/2, i*20+20, text[i]);
-		r+= drawText(partSize/2, height+i*20+20, text[i]);
 	}
 	r+='</g>';
 	return r;
@@ -148,6 +155,26 @@ function Signal(participant1, participant2, text, isDotted) {
 	}
 }
 
+//State
+
+function State(participant, text) {
+	this.participant = participant;
+	this.text = filter(text).split("\\n");
+	this.height = this.text.length*20+15;
+	
+	this.getHeight = function() {
+		return this.height;
+	}
+	
+	this.getSVG = function(position) {
+		return rectWithText(
+				this.participant.position*(partSize+interPart)+5,
+				position,
+				this.text,
+				false);
+	}
+}
+
 //Container
 
 function Container() {
@@ -184,6 +211,17 @@ function ParallelContainer() {
 
 ParallelContainer.prototype = new Container();
 
+ParallelContainer.prototype.getHeight = function() {
+	var height = this.height;
+	var maxHeight = 0;
+	for(var i in this.children) {
+		if(this.children[i].getHeight() > maxHeight) {
+			maxHeight = this.children[i].getHeight();
+		}
+	}
+	return height+maxHeight;
+}
+
 ParallelContainer.prototype.getSVG = function(position) {
 	var svg = "";
 	for(var i in this.children) {
@@ -216,6 +254,10 @@ function Schema() {
 		['[ \t]*autonumber[ ]*off[ ]*',
 			0,
 			'this.autonumber = null;'],
+		['[ \t]*state[ ]*over[ ]*([^: ]*)[ ]*:[ ]*(.*)',
+			2,
+			'this.addParticipant(new Participant(res[1]));'
+			+ 'this.addSignal(new State(this.getParticipant(res[1]), res[2]));'],
 		['[ \t]*([^- ]*)[ ]*(-)?->[ ]*([^: ]*)[ ]*:[ ]*(.*)',
 			4,
 			'this.addParticipant(new Participant(res[1]));'
