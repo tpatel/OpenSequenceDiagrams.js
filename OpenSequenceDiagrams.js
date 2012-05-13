@@ -101,6 +101,8 @@ function filter(text) {
 	return text.replace(/&/g, "&amp;").replace(/>/g, "&gt;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
 }
 
+//Participant
+
 function Participant(name, text) {
 	this.name = filter(name);
 	if(text == undefined) {
@@ -115,6 +117,8 @@ function Participant(name, text) {
 		return actor((partSize+interPart)*this.position+5, 5, height, this.text);
 	}
 }
+
+//Signal
 
 function Signal(participant1, participant2, text, isDotted) {
 	this.participant1 = participant1;
@@ -144,31 +148,51 @@ function Signal(participant1, participant2, text, isDotted) {
 	}
 }
 
+//Container
+
 function Container() {
 	this.children = [];
 	this.height = 0;
-	
-	this.addSignal = function(signal) {
-		this.children.push(signal);
-	}
-	
-	this.getHeight = function() {
-		var height = this.height;
-		for(var i in this.children) {
-			height += this.children[i].getHeight();
-		}
-		return height;
-	}
-	
-	this.getSVG = function(position) {
-		var svg = "";
-		for(var i in this.children) {
-			svg += this.children[i].getSVG(position);
-			position += this.children[i].getHeight();
-		}
-		return svg;
-	}
 }
+
+Container.prototype.addSignal = function(signal) {
+	this.children.push(signal);
+}
+
+Container.prototype.getHeight = function() {
+	var height = this.height;
+	for(var i in this.children) {
+		height += this.children[i].getHeight();
+	}
+	return height;
+}
+
+Container.prototype.getSVG = function(position) {
+	var svg = "";
+	for(var i in this.children) {
+		svg += this.children[i].getSVG(position);
+		position += this.children[i].getHeight();
+	}
+	return svg;
+}
+
+//Parallel container
+
+function ParallelContainer() {
+	Container.call(this);
+}
+
+ParallelContainer.prototype = new Container();
+
+ParallelContainer.prototype.getSVG = function(position) {
+	var svg = "";
+	for(var i in this.children) {
+		svg += this.children[i].getSVG(position);
+	}
+	return svg;
+}
+
+//Schema
 
 function Schema() {
 	this.participants = [];
@@ -180,6 +204,12 @@ function Schema() {
 		['[ \t]*participant[ ]*"?([^"]*)"?',
 			1,
 			'this.addParticipant(new Participant(res[1]));'],
+		['[ \t]*parallel[ ]*{[ ]*',
+			0,
+			'var p = new ParallelContainer(); this.addSignal(p); this.parallel = p;'],
+		['[ \t]*}[ ]*',
+			0,
+			'this.parallel = null;'],
 		['[ \t]*([^- ]*)[ ]*(-)?->[ ]*([^: ]*)[ ]*:[ ]*(.*)',
 			4,
 			'this.addParticipant(new Participant(res[1]));'
@@ -187,6 +217,7 @@ function Schema() {
 			+ 'this.addSignal(new Signal(this.getParticipant(res[1]), this.getParticipant(res[3]), res[4], res[2]=="-"))'],
 		['[ \t]*', 0, '']
 	];
+	this.parallel = null;
 	
 	this.addParticipant = function(participant) {
 		found = false;
@@ -202,7 +233,11 @@ function Schema() {
 	}
 	
 	this.addSignal = function(signal) {
-		this.signals.addSignal(signal);
+		if(this.parallel != null) {
+			this.parallel.addSignal(signal);
+		} else {
+			this.signals.addSignal(signal);
+		}
 	}
 	
 	this.getParticipant = function(name) {
