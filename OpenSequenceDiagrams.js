@@ -210,6 +210,12 @@ function Schema() {
 		['[ \t]*}[ ]*',
 			0,
 			'this.parallel = null;'],
+		['[ \t]*autonumber[ ]*([0-9]+)[ ]*',
+			1,
+			'this.autonumber = res[1];'],
+		['[ \t]*autonumber[ ]*off[ ]*',
+			0,
+			'this.autonumber = null;'],
 		['[ \t]*([^- ]*)[ ]*(-)?->[ ]*([^: ]*)[ ]*:[ ]*(.*)',
 			4,
 			'this.addParticipant(new Participant(res[1]));'
@@ -218,6 +224,7 @@ function Schema() {
 		['[ \t]*', 0, '']
 	];
 	this.parallel = null;
+	this.autonumber = null;
 	
 	this.addParticipant = function(participant) {
 		found = false;
@@ -233,6 +240,12 @@ function Schema() {
 	}
 	
 	this.addSignal = function(signal) {
+		if(this.autonumber != null) {
+			if(signal.text != undefined) {
+				signal.text[0] = "["+this.autonumber+"] " + signal.text[0];
+				this.autonumber++;
+			}
+		}
 		if(this.parallel != null) {
 			this.parallel.addSignal(signal);
 		} else {
