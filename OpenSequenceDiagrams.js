@@ -145,7 +145,7 @@ function Signal(participant1, participant2, text, isDotted) {
 		var minPosition = Math.min(this.participant1.position,
 				this.participant2.position);
 		return arrow(minPosition*(partSize+interPart)+5+partSize/2,
-				position,
+				position+10,
 				Math.abs(this.participant1.position
 					- this.participant2.position),
 				this.text,
@@ -282,11 +282,11 @@ function Schema() {
 	}
 	
 	this.addSignal = function(signal) {
-		if(this.autonumber != null) {
-			if(signal.text != undefined) {
-				signal.text[0] = "["+this.autonumber+"] " + signal.text[0];
-				this.autonumber++;
-			}
+		if(this.autonumber != null
+				&& signal.text != undefined
+				&& !(signal instanceof State)) {
+			signal.text[0] = "["+this.autonumber+"] " + signal.text[0];
+			this.autonumber++;
 		}
 		if(this.parallel != null) {
 			this.parallel.addSignal(signal);
