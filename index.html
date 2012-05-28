@@ -1,10 +1,9 @@
 <html>
 <head>
 	<title>Open Sequence Diagrams</title>
-	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js" type="text/javascript"></script>
+	<script src="resources/jquery-1.7.1.js" type="text/javascript"></script>
 	<script src="OpenSequenceDiagrams.js" type="text/javascript"></script>
 	<meta charset="UTF-8">
-	<link href='http://fonts.googleapis.com/css?family=Open+Sans' rel='stylesheet' type='text/css'>
 	<style type="text/css">
 		h1{text-align:center;}
 		body{font-family: 'Open Sans', sans-serif;}
@@ -28,7 +27,13 @@ participant "I have a really\nlong name" as L
 Alice->Bob: Authentication Request
 Bob-->Alice: Authentication Response
 Bob->L: Log transaction
-Alice->Alice: This is a signal to self.\nIt also demonstrates \nmultiline \ntext.</textarea><br/>
+Alice->Alice: This is a signal to self.\nIt also demonstrates \nmultiline \ntext.
+state over Alice : hello
+parallel {
+	Alice->Bob: test
+	Alice-->L: test too \n but at the same time
+}
+</textarea><br/>
 	<a href="#" id="refresh">Refresh</a> <a href="#" id="open">Download</a><br/>
 
 	<div id="errors">

@@ -212,20 +212,18 @@ function ParallelContainer() {
 ParallelContainer.prototype = new Container();
 
 ParallelContainer.prototype.getHeight = function() {
-	var height = this.height;
-	var maxHeight = 0;
 	for(var i in this.children) {
-		if(this.children[i].getHeight() > maxHeight) {
-			maxHeight = this.children[i].getHeight();
+		if(this.children[i].getHeight() > this.height) {
+			this.height = this.children[i].getHeight();
 		}
 	}
-	return height+maxHeight;
+	return this.height;
 }
 
 ParallelContainer.prototype.getSVG = function(position) {
 	var svg = "";
 	for(var i in this.children) {
-		svg += this.children[i].getSVG(position);
+		svg += this.children[i].getSVG(position + this.height - this.children[i].height);
 	}
 	return svg;
 }
