@@ -177,9 +177,14 @@ function State(participant, text) {
 
 //Container
 
-function Container() {
+function Container(parent) {
 	this.children = [];
 	this.height = 0;
+	this.parent = parent;
+}
+
+Container.prototype.getParent = function() {
+	return this.parent;
 }
 
 Container.prototype.addSignal = function(signal) {
@@ -205,8 +210,8 @@ Container.prototype.getSVG = function(position) {
 
 //Parallel container
 
-function ParallelContainer() {
-	Container.call(this);
+function ParallelContainer(parent) {
+	Container.call(this, parent);
 }
 
 ParallelContainer.prototype = new Container();
@@ -232,7 +237,7 @@ ParallelContainer.prototype.getSVG = function(position) {
 
 function Schema() {
 	this.participants = [];
-	this.signals = new Container();
+	this.signals = new Container(null);
 	this.patterns = [
 		['[ \t]*participant[ ]*"([^"]*)"[ ]*as[ ]*"?([^"]*)"?',
 			2,
@@ -242,10 +247,10 @@ function Schema() {
 			'this.addParticipant(new Participant(res[1]));'],
 		['[ \t]*parallel[ ]*{[ ]*',
 			0,
-			'var p = new ParallelContainer(); this.addSignal(p); this.parallel = p;'],
+			'var p = new ParallelContainer(this.signals); this.addSignal(p); this.signals = p;'],
 		['[ \t]*}[ ]*',
 			0,
-			'this.parallel = null;'],
+			'this.signals = this.signals.getParent();'],
 		['[ \t]*autonumber[ ]*([0-9]+)[ ]*',
 			1,
 			'this.autonumber = res[1];'],
@@ -263,7 +268,6 @@ function Schema() {
 			+ 'this.addSignal(new Signal(this.getParticipant(res[1]), this.getParticipant(res[3]), res[4], res[2]=="-"))'],
 		['[ \t]*', 0, '']
 	];
-	this.parallel = null;
 	this.autonumber = null;
 	
 	this.addParticipant = function(participant) {
