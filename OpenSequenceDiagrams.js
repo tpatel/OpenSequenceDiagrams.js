@@ -250,7 +250,8 @@ function Schema() {
 			'var p = new ParallelContainer(this.signals); this.addSignal(p); this.signals = p;'],
 		['[ \t]*}[ ]*',
 			0,
-			'this.signals = this.signals.getParent();'],
+			'if(!(this.signals instanceof ParallelContainer)) res[0]=null;'
+			+ 'else this.signals = this.signals.getParent();'],
 		['[ \t]*autonumber[ ]*([0-9]+)[ ]*',
 			1,
 			'this.autonumber = res[1];'],
@@ -319,9 +320,6 @@ function Schema() {
 	}
 	
 	this.parseLine = function(line) {
-		if(line === "") {
-			return true;
-		}
 		for(var i in this.patterns) {
 			var pat = new RegExp(this.patterns[i][0]);
 			var res = pat.exec(line);
