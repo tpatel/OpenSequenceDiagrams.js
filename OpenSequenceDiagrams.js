@@ -22,18 +22,19 @@ var interPart = 25; //Horizontal interval between 2 participants
 
 //SVG functions ---------------------------------------------------------------
 
-function drawText(x, y, text) {
-	return '<text x="'+x+'" y="'+ y + '" style="text-anchor:middle;">'+text+'</text>';
+function drawText(x, y, text, center) {
+	return '<text x="'+x+'" y="'+ y + '"' + (center ? ' style="text-anchor:middle;"' : '') + '>'+text+'</text>';
 }
 
-function drawRect(x, y, width, height, ry, gradient) {
+function drawRect(x, y, width, height, ry, fill, stroke) {
 	return '<rect'
 			+ ' x="' + x
 			+ '" y="' + y
 			+ '" width="' + width
 			+ '" height="' + height
 			+ '" ry="' + ry
-			+ '" style="fill:' + (gradient ? 'url(#grad1)' : 'white') + ';stroke:black;stroke-width:2;" ></rect>';
+			+ '" style="fill:' + fill + ';'
+			+ (stroke ? 'stroke:black;stroke-width:2;' : '') + '" ></rect>';
 }
 
 function drawLine(x1, y1, x2, y2, isDotted) {
@@ -74,12 +75,30 @@ function actor(x, y, height, text) {
 function rectWithText(x, y, text, gradient) {
 	var end = text.length * 20 + 10;
 	var r = '<g transform="translate('+x+','+y+')">';
-	r+= drawRect(0, 0, partSize, end, 5, gradient);
+	r+= drawRect(0, 0, partSize, end, 5, (gradient ? 'url(#grad1)' : 'white'), true);
 	for(var i in text) {
-		r+= drawText(partSize/2, i*20+20, text[i]);
+		r+= drawText(partSize/2, i*20+20, text[i], true);
 	}
 	r+='</g>';
 	return r;
+}
+
+function specialRectangle(x, y, w, h, type, comment) {
+	var svg = "";
+	svg += drawRect(x, y, 70, 30, 0, 'white', false);
+	
+	svg += drawRect(x, y, w, h, 0, 'none', true);
+	
+	svg += drawLine(x, y+30, x+60, y+30, false);
+	svg += drawLine(x+60, y+30, x+70, y+20, false);
+	svg += drawLine(x+70, y+20, x+70, y, false);
+	
+	svg += drawText(x+30, y+20, type, true);
+	
+	if(comment != "") {
+		svg += drawText(x+90, y+20, '['+comment+']', false);
+	}
+	return svg;
 }
 
 function arrow(x, y, width, text, isToTheRight, isDotted, isToSelf) {
@@ -95,7 +114,7 @@ function arrow(x, y, width, text, isToTheRight, isDotted, isToSelf) {
 		r+= drawTriangle((isToTheRight ? (partSize+interPart)*width : 0), lineY, isToTheRight);
 	}
 	for(var i in text) {
-		r+= drawText((partSize+interPart)*width/2, i*20, text[i]);
+		r+= drawText((partSize+interPart)*width/2, i*20, text[i], true);
 	}
 	r+='</g>';
 	return r;
@@ -105,17 +124,17 @@ function arrow(x, y, width, text, isToTheRight, isDotted, isToSelf) {
 //Model -----------------------------------------------------------------------
 
 function filter(text) {
-	return text.replace(/&/g, "&amp;").replace(/>/g, "&gt;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
+	return text.replace(/</g, "&lt;");
 }
 
 //Participant
 
 function Participant(name, text) {
-	this.name = filter(name);
+	this.name = name;
 	if(text == undefined) {
-		this.text = filter(name).split("\\n");
+		this.text = name.split("\\n");
 	} else {
-		this.text = filter(text).split("\\n");
+		this.text = text.split("\\n");
 	}
 	this.height = this.text.length*20+10+30;
 	this.position = 0;
@@ -130,7 +149,7 @@ function Participant(name, text) {
 function Signal(participant1, participant2, text, isDotted) {
 	this.participant1 = participant1;
 	this.participant2 = participant2;
-	this.text = filter(text).split("\\n");
+	this.text = text.split("\\n");
 	this.isDotted = isDotted;
 	this.height = this.text.length*20+10;
 	if(participant1.name == participant2.name) {
@@ -141,7 +160,7 @@ function Signal(participant1, participant2, text, isDotted) {
 		return this.height;
 	}
 	
-	this.getSVG = function(position) {
+	this.getSVG = function(position, width) {
 		var minPosition = Math.min(this.participant1.position,
 				this.participant2.position);
 		return arrow(minPosition*(partSize+interPart)+5+partSize/2,
@@ -159,14 +178,14 @@ function Signal(participant1, participant2, text, isDotted) {
 
 function State(participant, text) {
 	this.participant = participant;
-	this.text = filter(text).split("\\n");
+	this.text = text.split("\\n");
 	this.height = this.text.length*20+15;
 	
 	this.getHeight = function() {
 		return this.height;
 	}
 	
-	this.getSVG = function(position) {
+	this.getSVG = function(position, width) {
 		return rectWithText(
 				this.participant.position*(partSize+interPart)+5,
 				position,
@@ -181,6 +200,14 @@ function Container(parent) {
 	this.children = [];
 	this.height = 0;
 	this.parent = parent;
+	this.depth = 0;
+	if(parent != null) {
+		this.depth = parent.getDepth()+1;
+	}
+}
+
+Container.prototype.getDepth = function() {
+	return this.depth;
 }
 
 Container.prototype.getParent = function() {
@@ -199,10 +226,10 @@ Container.prototype.getHeight = function() {
 	return height;
 }
 
-Container.prototype.getSVG = function(position) {
+Container.prototype.getSVG = function(position, width) {
 	var svg = "";
 	for(var i in this.children) {
-		svg += this.children[i].getSVG(position);
+		svg += this.children[i].getSVG(position, width);
 		position += this.children[i].getHeight();
 	}
 	return svg;
@@ -225,10 +252,44 @@ ParallelContainer.prototype.getHeight = function() {
 	return this.height;
 }
 
-ParallelContainer.prototype.getSVG = function(position) {
+ParallelContainer.prototype.getSVG = function(position, width) {
 	var svg = "";
 	for(var i in this.children) {
-		svg += this.children[i].getSVG(position + this.height - this.children[i].height);
+		svg += this.children[i].getSVG(position + this.height - this.children[i].getHeight());
+	}
+	return svg;
+}
+
+//Loop container
+
+function LoopContainer(parent, times) {
+	Container.call(this, parent);
+	this.height = 60;
+	this.times = times;
+}
+
+LoopContainer.prototype = new Container();
+
+LoopContainer.prototype.getHeight = function() {
+	var height = this.height;
+	for(var i in this.children) {
+		height += this.children[i].getHeight();
+	}
+	return height;
+}
+
+LoopContainer.prototype.getSVG = function(position, width) {
+	var svg = "";
+	svg += specialRectangle(10*(this.getDepth()+1),
+			position,
+			width-((this.getDepth()+1)*2*10),
+			this.getHeight()-10,
+			"loop",
+			this.times + " times");
+	position += 50;
+	for(var i in this.children) {
+		svg += this.children[i].getSVG(position, width);
+		position += this.children[i].getHeight();
 	}
 	return svg;
 }
@@ -252,6 +313,15 @@ function Schema() {
 			0,
 			'if(!(this.signals instanceof ParallelContainer)) res[0]=null;'
 			+ 'else this.signals = this.signals.getParent();'],
+		
+		['[ \t]*loop[ ]*([0-9]+)[ ]*times[ ]*',
+			1,
+			'var p = new LoopContainer(this.signals, res[1]); this.addSignal(p); this.signals = p;'],
+		['[ \t]*end[ ]*',
+			0,
+			'if(!(this.signals instanceof LoopContainer)) res[0]=null;'
+			+ 'else this.signals = this.signals.getParent();'],
+			
 		['[ \t]*autonumber[ ]*([0-9]+)[ ]*',
 			1,
 			'this.autonumber = res[1];'],
@@ -322,6 +392,7 @@ function Schema() {
 	this.parseLine = function(line) {
 		for(var i in this.patterns) {
 			var pat = new RegExp(this.patterns[i][0]);
+			line = filter(line);
 			var res = pat.exec(line);
 			if(res != null && res.length-1 == this.patterns[i][1]) {
 				eval(this.patterns[i][2]);
@@ -346,16 +417,18 @@ function Schema() {
 		var height = heightParticipants;
 		height += this.signals.getHeight();
 		
+		var width = (this.participants.length * (partSize+interPart)) - interPart + 10;
+		
 		for(var i in this.participants) {
 			this.participants[i].position = i;
 			svg += this.participants[i].getSVG(height);
 		}
 		height += heightParticipants;
-		svg += this.signals.getSVG(heightParticipants);
+		svg += this.signals.getSVG(heightParticipants, width);
 		
 		var finalSVG =
 			'<svg  xmlns="http://www.w3.org/2000/svg" version="1.1" width="'
-			+ (this.participants.length * (partSize+interPart))
+			+ width
 			+ '" height="'
 			+ (height + 10)
 			+ '">';
