@@ -262,15 +262,16 @@ ParallelContainer.prototype.getSVG = function(position, width) {
 
 //Loop container
 
-function LoopContainer(parent, times) {
+function SimpleContainer(parent, type, times) {
 	Container.call(this, parent);
 	this.height = 60;
 	this.times = times;
+	this.type = type;
 }
 
-LoopContainer.prototype = new Container();
+SimpleContainer.prototype = new Container();
 
-LoopContainer.prototype.getHeight = function() {
+SimpleContainer.prototype.getHeight = function() {
 	var height = this.height;
 	for(var i in this.children) {
 		height += this.children[i].getHeight();
@@ -278,13 +279,13 @@ LoopContainer.prototype.getHeight = function() {
 	return height;
 }
 
-LoopContainer.prototype.getSVG = function(position, width) {
+SimpleContainer.prototype.getSVG = function(position, width) {
 	var svg = "";
 	svg += specialRectangle(10*(this.getDepth()+1),
 			position,
 			width-((this.getDepth()+1)*2*10),
 			this.getHeight()-10,
-			"loop",
+			this.type,
 			this.times + " times");
 	position += 50;
 	for(var i in this.children) {
@@ -313,13 +314,15 @@ function Schema() {
 			0,
 			'if(!(this.signals instanceof ParallelContainer)) res[0]=null;'
 			+ 'else this.signals = this.signals.getParent();'],
-		
+		['[ \t]*opt[ ]*',
+			0,
+			'var p = new SimpleContainer(this.signals, "opt", ""); this.addSignal(p); this.signals = p;'],
 		['[ \t]*loop[ ]*([0-9]+)[ ]*times[ ]*',
 			1,
-			'var p = new LoopContainer(this.signals, res[1]); this.addSignal(p); this.signals = p;'],
+			'var p = new SimpleContainer(this.signals, "loop", res[1]); this.addSignal(p); this.signals = p;'],
 		['[ \t]*end[ ]*',
 			0,
-			'if(!(this.signals instanceof LoopContainer)) res[0]=null;'
+			'if(!(this.signals instanceof SimpleContainer)) res[0]=null;'
 			+ 'else this.signals = this.signals.getParent();'],
 			
 		['[ \t]*autonumber[ ]*([0-9]+)[ ]*',
@@ -383,8 +386,11 @@ function Schema() {
 		for(var i in tab) {
 			var found = this.parseLine(tab[i]);
 			if(!found) {
-				retour += 'E: line ' + (parseInt(i)+1) + ' (' + tab[i] + ')<br/>';
+				retour += 'E: line ' + (parseInt(i)+1) + '<br/>';
 			}
+		}
+		if(this.signals.getParent() != null) {
+			retour += 'E: missing closing \'end\' tag before the end of the code<br/>';
 		}
 		return retour;
 	}
