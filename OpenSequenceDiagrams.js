@@ -286,7 +286,7 @@ SimpleContainer.prototype.getSVG = function(position, width) {
 			width-((this.getDepth()+1)*2*10),
 			this.getHeight()-10,
 			this.type,
-			this.times + " times");
+			(this.times == "" ? "" : this.times + " times"));
 	position += 50;
 	for(var i in this.children) {
 		svg += this.children[i].getSVG(position, width);
