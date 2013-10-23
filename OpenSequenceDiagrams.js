@@ -375,46 +375,84 @@ var Sequence = (function() {
 		this.participants = [];
 		this.signals = new Container(null);
 		this.patterns = [
-			['[ \t]*participant[ ]*"([^"]*)"[ ]*as[ ]*"?([^"]*)"?',
+			['^[ \t]*participant[ ]*"([^"]*)"[ ]*as[ ]*"?([^"]*)"?$',
 				2,
-				'this.addParticipant(new Participant(res[2], res[1]));'],
-			['[ \t]*participant[ ]*"?([^"]*)"?',
+				function(res) {
+					this.addParticipant(new Participant(res[2], res[1]));
+				}],
+			['^[ \t]*participant[ ]*"?([^"]*)"?$',
 				1,
-				'this.addParticipant(new Participant(res[1]));'],
-			['[ \t]*parallel[ ]*{[ ]*',
+				function(res) {
+					this.addParticipant(new Participant(res[1]));
+				}],
+			['^[ \t]*parallel[ ]*{[ ]*$',
 				0,
-				'var p = new ParallelContainer(this.signals); this.addSignal(p); this.signals = p;'],
-			['[ \t]*}[ ]*',
+				function(res) {
+					var p = new ParallelContainer(this.signals);
+					this.addSignal(p);
+					this.signals = p;
+				}],
+			['^[ \t]*}[ ]*$',
 				0,
-				'if(!(this.signals instanceof ParallelContainer)) res[0]=null;'
-				+ 'else this.signals = this.signals.getParent();'],
-			['[ \t]*opt[ ]*',
+				function(res) {
+					if(!(this.signals instanceof ParallelContainer)) {
+						return true; //Error
+					} else {
+						this.signals = this.signals.getParent();
+					}
+				}],
+			['^[ \t]*opt[ ]*$',
 				0,
-				'var p = new SimpleContainer(this.signals, "opt", ""); this.addSignal(p); this.signals = p;'],
-			['[ \t]*loop[ ]*([0-9]+)[ ]*times[ ]*',
+				function(res) {
+					var p = new SimpleContainer(this.signals, "opt", "");
+					this.addSignal(p);
+					this.signals = p;
+				}],
+			['^[ \t]*loop[ ]*([0-9]+)[ ]*times[ ]*$',
 				1,
-				'var p = new SimpleContainer(this.signals, "loop", res[1]); this.addSignal(p); this.signals = p;'],
-			['[ \t]*end[ ]*',
+				function(res) {
+					var p = new SimpleContainer(this.signals, "loop", res[1]);
+					this.addSignal(p);
+					this.signals = p;
+				}],
+			['^[ \t]*end[ ]*$',
 				0,
-				'if(!(this.signals instanceof SimpleContainer)) res[0]=null;'
-				+ 'else this.signals = this.signals.getParent();'],
-			
-			['[ \t]*autonumber[ ]*([0-9]+)[ ]*',
+				function(res) {
+					if(!(this.signals instanceof SimpleContainer)) {
+						return true; //Error
+					} else {
+						this.signals = this.signals.getParent();
+					}
+				}],
+			['^[ \t]*autonumber[ ]*([0-9]+)[ ]*$',
 				1,
-				'this.autonumber = res[1];'],
-			['[ \t]*autonumber[ ]*off[ ]*',
+				function(res) {
+					this.autonumber = res[1];
+				}],
+			['^[ \t]*autonumber[ ]*off[ ]*$',
 				0,
-				'this.autonumber = null;'],
-			['[ \t]*state[ ]*over[ ]*([^: ]*)[ ]*:[ ]*(.*)',
+				function(res) {
+					this.autonumber = null;
+				}],
+			['^[ \t]*state[ ]*over[ ]*([^: ]*)[ ]*:[ ]*(.*)$',
 				2,
-				'this.addParticipant(new Participant(res[1]));'
-				+ 'this.addSignal(new State(this.getParticipant(res[1]), res[2]));'],
-			['[ \t]*([^- ]*)[ ]*(-)?->[ ]*([^: ]*)[ ]*:[ ]*(.*)',
+				function(res) {
+					this.addParticipant(new Participant(res[1]));
+					this.addSignal(new State(this.getParticipant(res[1]), res[2]));
+				}],
+			['^[ \t]*([^- ]*)[ ]*(-)?->[ ]*([^: ]*)[ ]*:[ ]*(.*)$',
 				4,
-				'this.addParticipant(new Participant(res[1]));'
-				+ 'this.addParticipant(new Participant(res[3]));'
-				+ 'this.addSignal(new Signal(this.getParticipant(res[1]), this.getParticipant(res[3]), res[4], res[2]=="-"))'],
-			['[ \t]*', 0, '']
+				function(res) {
+					this.addParticipant(new Participant(res[1]));
+					this.addParticipant(new Participant(res[3]));
+					this.addSignal(new Signal(
+						this.getParticipant(res[1]),
+						this.getParticipant(res[3]),
+						res[4],
+						res[2] == "-"
+					));
+				}],
+			['^[ \t]*$', 0, function(res) {}]
 		];
 		this.autonumber = null;
 	
@@ -470,15 +508,13 @@ var Sequence = (function() {
 		}
 	
 		this.parseLine = function(line) {
+			line = filter(line);
 			for(var i in this.patterns) {
 				var pat = new RegExp(this.patterns[i][0]);
-				line = filter(line);
 				var res = pat.exec(line);
 				if(res != null && res.length-1 == this.patterns[i][1]) {
-					eval(this.patterns[i][2]);
-					if(res[0] === line) {
-						return true;
-					}
+					var error = this.patterns[i][2].call(this, res);
+					if(!error) return true;
 				}
 			}
 			return false;
