@@ -7,6 +7,8 @@
 	<style type="text/css">
 		h1{text-align:center;}
 		body{font-family: 'Open Sans', sans-serif;}
+		.results {float:right}
+		.clear {clear:both}
 	</style>
 </head>
 <body>
@@ -19,45 +21,244 @@
 		Pour l'instant, seul un sous ensemble du langage utilisé par Web Sequence Diagrams est implémenté...<br/>
 		Commencez dès maintenant à tester :
 	</p>
-	<textarea id="source" style="width:100%; height:25%;">
+	<div class="results">
+		<div id="drawing0"></div>
+		<div id="errors0"></div>
+	</div>
+	<textarea id="source0" style="width:33%;height:300px">
+# This is a comment.            
+Alice->Bob: Filled arrow
+Alice->>Bob: Open arrow
+Bob-->Alice: Dotted line
+Bob-->>Alice: Dotted Line, open arrow
+Bob<->Alice: Double arrow
+Bob<->>Alice: Double open arrow
+Bob<-->>Alice: Dotted line, double open arrow</textarea>
+	
+	<div class="clear"></div>
+
+	<div class="results">
+		<div id="drawing1"></div>
+		<div id="errors1"></div>
+	</div>
+	<textarea id="source1" style="width:33%;height:300px">
 participant Bob
 participant Alice
 participant "I have a really\nlong name" as L
 
 Alice->Bob: Authentication Request
-Bob-->Alice: Authentication Response
-Bob->L: Log transaction
-Alice->Alice: This is a signal to self.\nIt also demonstrates \nmultiline \ntext.
-state over Alice : hello
-parallel {
-	Alice->Bob: test
-	Alice-->L: test too \n but at the same time
-}
-</textarea><br/>
-	<a href="#" id="refresh">Refresh</a> <a href="#" id="open">Download</a><br/>
+Bob->Alice: Authentication Response
+Bob->L: Log transaction</textarea>
 
-	<div id="errors">
-	</div><br/>
-	<div id="drawing">
+	<div class="clear"></div>
+
+	<div class="results">
+		<div id="drawing2"></div>
+		<div id="errors2"></div>
 	</div>
+	<textarea id="source2" style="width:33%;height:300px">
+Alice->Alice: This is a signal to self.\nIt also demonstrates \nmultiline \ntext.</textarea>
+	
+	<div class="clear"></div>
+
+	<div class="results">
+		<div id="drawing3"></div>
+		<div id="errors3"></div>
+	</div>
+	<textarea id="source3" style="width:33%;height:300px">
+Alice->Bob: Authentication Request
+alt successful case
+Bob->Alice: Authentication Accepted
+else some kind of failure
+Bob->Alice: Authentication Failure
+opt
+    loop 1000 times
+        Alice->Bob: DNS Attack
+    end
+end
+else Another type of failure
+Bob->Alice: Please repeat
+end</textarea>
+
+	<div class="clear"></div>
+
+	<div class="results">
+		<div id="drawing4"></div>
+		<div id="errors4"></div>
+	</div>
+	<textarea id="source4" style="width:33%;height:300px">
+participant Alice
+participant Bob
+
+note left of Alice 
+This is displayed 
+left of Alice.
+end note
+note right of Alice: This is displayed right of Alice.
+note over Alice: This is displayed over Alice.
+note over Alice, Bob: This is displayed over Bob and Alice.</textarea>
+	
+	<div class="clear"></div>
+
+	<div class="results">
+		<div id="drawing5"></div>
+		<div id="errors5"></div>
+	</div>
+	<textarea id="source5" style="width:33%;height:300px">
+User->+A: DoWork
+A->+B: <<createRequest>>
+B->+C: DoWork
+C-->B: WorkDone
+destroy C
+B-->-A: RequestCreated
+A->User: Done</textarea>
+	
+	<div class="clear"></div>
+
+	<div class="results">
+		<div id="drawing6"></div>
+		<div id="errors6"></div>
+	</div>
+	<textarea id="source6" style="width:33%;height:300px">
+Alice->Bob: Do some work!
+activate Bob
+
+Bob->Bob: Work routine
+activate Bob
+deactivate Bob
+
+Bob->Alice: All done!
+deactivate Bob</textarea>
+	
+	<div class="clear"></div>
+
+	<div class="results">
+		<div id="drawing7"></div>
+		<div id="errors7"></div>
+	</div>
+	<textarea id="source7" style="width:33%;height:300px">
+ You can explain the sequences that follow
+ simply by indenting your explanations 
+ with a space.
+
+Alice->Bob: Wow!</textarea>
+	
+	<div class="clear"></div>
+
+	<div class="results">
+		<div id="drawing8"></div>
+		<div id="errors8"></div>
+	</div>
+	<textarea id="source8" style="width:33%;height:300px">
+parallel {
+    Client->Proxy: Request
+    Proxy->Server: Forwarded Request
+    note right of Server: Web proxy in operation
+}</textarea>
+	
+	<div class="clear"></div>
+
+	<div class="results">
+		<div id="drawing9"></div>
+		<div id="errors9"></div>
+	</div>
+	<textarea id="source9" style="width:33%;height:300px">
+participant Client
+participant Server
+parallel {
+    state over Server: LISTEN
+    state over Client: CLOSED
+}
+Client->Server: SYN
+parallel { 
+    state over Client: SYN-SENT
+    state over Server: SYN_RECEIVED
+}
+Server->Client: ACK</textarea>
+	
+	<div class="clear"></div>
+
+	<div class="results">
+		<div id="drawing10"></div>
+		<div id="errors10"></div>
+	</div>
+	<textarea id="source10" style="width:33%;height:300px">
+autonumber 2
+UE->GANC: Register Request
+GANC->UE: Register Reject</textarea>
+	
+	<div class="clear"></div>
+
+	<div class="results">
+		<div id="drawing11"></div>
+		<div id="errors11"></div>
+	</div>
+	<textarea id="source11" style="width:33%;height:300px">
+ref over Mobile, Base Station
+   Refer to 3GPP 44.060 6.6.4.1
+end ref</textarea>
+	
+	<div class="clear"></div>
+
+	<div class="results">
+		<div id="drawing12"></div>
+		<div id="errors12"></div>
+	</div>
+	<textarea id="source12" style="width:33%;height:300px">
+Alice->ref over Bob, Mary: input
+   refer to other diagram
+end ref -->Alice: output</textarea>
+	
+	<div class="clear"></div>
+
+	<div class="results">
+		<div id="drawing13"></div>
+		<div id="errors13"></div>
+	</div>
+	<textarea id="source13" style="width:33%;height:300px">
+option footer=none
+Alice->Alice:</textarea>
+	
+	<div class="clear"></div>
+
+	<div class="results">
+		<div id="drawing14"></div>
+		<div id="errors14"></div>
+	</div>
+	<textarea id="source14" style="width:33%;height:300px">
+option footer=bar
+Bob->Bob:</textarea>
+	
+	
+	
+
 
 <script>
-$("#refresh").click(function(event) {
-	$("#drawing").html("<p>loading...</p>");
-	$("#errors").html("<p>No errors</p>");
+function parse(idIn, idErr, idOut) {
+	$(idOut).html("<p>loading...</p>");
+	$(idErr).html("<p>No errors</p>");
 	
-	Sequence.parse($("#source").val());
-	if(Sequence.getErrors() != "")
-		$("#errors").html("<p>" + Sequence.getErrors() + "</p>");
+	var seq = Sequence.parse($(idIn).val());
+	if(seq.getErrors() != "")
+		$(idErr).html("<p>" + seq.getErrors() + "</p>");
 	
-	$("#drawing").html(Sequence.getSVG());
-	event.preventDefault();
-});
+	$(idOut).html(seq.getSVG());
+}
 
-$("#open").click(function(event) {
-	open("data:image/svg+xml," + encodeURIComponent($("#drawing").html()));
-	event.preventDefault();
-});
+for(var i=0; i<15; i++) {
+	(function(i) {
+		function update() {
+			parse('#source'+i, '#errors'+i, '#drawing'+i);
+		}
+		var timeout = null;
+		$('#source'+i).keyup(function(event) {
+			clearTimeout(timeout);
+			timeout = setTimeout(update, 200);
+		});
+		parse('#source'+i, '#errors'+i, '#drawing'+i);
+	})(i);
+}
+
 </script>
 </body>
 </html>

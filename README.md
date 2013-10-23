@@ -9,6 +9,17 @@ My goal is to implement the [language used by Web Sequence Diagrams](http://www.
 This tool is design to be a plugin of [the file tree](https://github.com/garden/tree).
 You can try it online [here](https://thefiletree.com/test/test.sequence?plug=sequence).
 
+TODO
+=====
+* Better horizontal dimensions
+* life activation & destruction
+* reference other sequences
+* footer types
+* notes
+* alt
+* Themes
+
+
 License
 =======
 

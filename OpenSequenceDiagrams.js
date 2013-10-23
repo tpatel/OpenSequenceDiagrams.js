@@ -368,7 +368,7 @@ var Sequence = (function() {
 				width-((this.getDepth()+1)*2*10),
 				this.getHeight()-10,
 				this.type,
-				(this.times == "" ? "" : this.times + " times"));
+				(this.times == "" ? "" : this.times));
 		position += 50;
 		for(var i in this.children) {
 			svg += this.children[i].getSVG(position, width);
@@ -416,7 +416,7 @@ var Sequence = (function() {
 					this.addSignal(p);
 					this.signals = p;
 				}],
-			['^[ \t]*loop[ ]*([0-9]+)[ ]*times[ ]*$',
+			['^[ \t]*loop[ ]*(\.+)$',
 				1,
 				function(res) {
 					var p = new SimpleContainer(this.signals, "loop", res[1]);
@@ -571,24 +571,18 @@ var Sequence = (function() {
 	
 	//Public API
 	
-	var _schema = null;
-	var _errors = null;
 	var parse = function(text) {
 		console.time('parseTime');
-		_schema = new Schema();
-		_errors = _schema.parseLines(text);
+		var _schema = new Schema();
+		var _errors = _schema.parseLines(text);
 		console.timeEnd('parseTime');
+		return {
+			getErrors: function() {return _errors;},
+			getSVG: function() {return _schema.getSVG();}
+		};
 	};
 	
-	var getErrors = function() {
-		return _errors;
-	};
-	
-	var getSVG = function() {
-		return _schema.getSVG();
-	};
-	
-	var api = {parse: parse, getErrors: getErrors, getSVG: getSVG};
+	var api = {parse: parse};
 	if(typeof module != 'undefined') module.exports = api;
 	return api;
 })();
