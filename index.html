@@ -43,16 +43,15 @@ parallel {
 
 <script>
 function parseText() {
-	var schema = new Schema();
 	
 	$("#drawing").html("<p>loading...</p>");
 	$("#errors").html("<p>No errors</p>");
 	
-	var retour = schema.parseLines($("#source").val());
-	if(retour != "")
-		$("#errors").html("<p>" + retour + "</p>");
+	Sequence.parse($("#source").val());
+	if(Sequence.getErrors() != "")
+		$("#errors").html("<p>" + Sequence.getErrors() + "</p>");
 	
-	$("#drawing").html(schema.getSVG());
+	$("#drawing").html(Sequence.getSVG());
 }
 
 function openSVG() {
