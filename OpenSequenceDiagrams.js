@@ -16,6 +16,32 @@
 */
 
 var Sequence = (function() {
+	//Templating system
+	
+	var template = (function() {
+		var templates = { //User input must be at the last position to avoid injection
+			text: '<text x="::x" y="::y">::text</text>',
+			centeredText: '<text x="::x" y="::y" style="text-anchor:middle">::text</text>',
+			rect: '<rect x="::x" y="::y" width="::width" height="::height" ry="::ry" style="fill: ::fill;"></rect>',
+			strokeRect: '<rect x="::x" y="::y" width="::width" height="::height" ry="::ry" style="fill: ::fill;stroke:black;stroke-width:2;"></rect>',
+			gradient: '<linearGradient id="::id" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" style="stop-color:rgb(200, 200, 200);stop-opacity:1"></stop><stop offset="100%" style="stop-color:rgb(100,100,100);stop-opacity:1"></stop></linearGradient>',
+			line: '<line x1="::x1" y1="::y1" x2="::x2" y2="::y2" style="stroke:black;stroke-width:2"></line>',
+			dottedLine: '<line x1="::x1" y1="::y1" x2="::x2" y2="::y2" style="stroke:black;stroke-width:2" stroke-dasharray="10,5"></line>'
+		};
+		var regexp = /::[a-zA-Z0-9]+/g;
+	
+		function getTemplate(name, values) {
+			var source = templates[name];
+			var m = source.match(regexp);
+			for(var i in m) {
+				var k = m[i].substr(2);
+				source = source.replace(m[i], values[k] || '');
+			}
+			return source;
+		}
+		
+		return getTemplate;
+	})();
 
 	//Constansts ------------------------------------------------------------------
 
@@ -23,31 +49,6 @@ var Sequence = (function() {
 	var interPart = 25; //Horizontal interval between 2 participants
 
 	//SVG functions ---------------------------------------------------------------
-
-	function drawText(x, y, text, center) {
-		return '<text x="'+x+'" y="'+ y + '"' + (center ? ' style="text-anchor:middle;"' : '') + '>'+text+'</text>';
-	}
-
-	function drawRect(x, y, width, height, ry, fill, stroke) {
-		return '<rect'
-				+ ' x="' + x
-				+ '" y="' + y
-				+ '" width="' + width
-				+ '" height="' + height
-				+ '" ry="' + ry
-				+ '" style="fill:' + fill + ';'
-				+ (stroke ? 'stroke:black;stroke-width:2;' : '') + '" ></rect>';
-	}
-
-	function drawLine(x1, y1, x2, y2, isDotted) {
-		return '<line x1="' + x1
-				+ '" y1="' + y1 
-				+ '" x2="' + x2 
-				+ '" y2="' + y2 
-				+ '" style="stroke:black;stroke-width:2" '
-				+ (isDotted ? 'stroke-dasharray="10,5"' : '')
-				+ '></line>';
-	}
 
 	function drawTriangle(x, y, isToTheRight) {
 		var x1 = (isToTheRight ? x-15 : x+15);
@@ -57,17 +58,15 @@ var Sequence = (function() {
 	  			+ 'style="fill:black;"></polygon>';
 	}
 
-	function gradient(id) {
-		return '<linearGradient id="' + id + '" x1="0%" y1="0%" x2="0%" y2="100%">'
-				+ '<stop offset="0%" style="stop-color:rgb(200, 200, 200);stop-opacity:1"></stop>'
-				+ '<stop offset="100%" style="stop-color:rgb(100,100,100);stop-opacity:1"></stop>'
-				+ '</linearGradient>'
-	}
-
 	function actor(x, y, height, text) {
 		var end = text.length * 20 + 10;
 		var r = '<g transform="translate('+x+','+y+')">';
-		r+= drawLine(partSize/2, end, partSize/2, height);
+		r+= template('line', {
+			x1: partSize/2,
+			y1: end,
+			x2: partSize/2,
+			y2: height
+		});
 		r += rectWithText(0, 0, text, true);
 		r += rectWithText(0, height, text, true);
 		r+='</g>';
@@ -77,9 +76,21 @@ var Sequence = (function() {
 	function rectWithText(x, y, text, gradient) {
 		var end = text.length * 20 + 10;
 		var r = '<g transform="translate('+x+','+y+')">';
-		r+= drawRect(0, 0, partSize, end, 5, (gradient ? 'url(#grad1)' : 'white'), true);
+		r+= template('strokeRect', {
+			x: 0,
+			y: 0,
+			width: partSize,
+			height: end,
+			ry: 5,
+			fill: (gradient ? 'url(#grad1)' : 'white')
+		});
+		
 		for(var i in text) {
-			r+= drawText(partSize/2, i*20+20, text[i], true);
+			r+= template('centeredText', {
+				x: partSize/2,
+				y: i*20+20,
+				text: text[i]
+			});
 		}
 		r+='</g>';
 		return r;
@@ -87,18 +98,55 @@ var Sequence = (function() {
 
 	function specialRectangle(x, y, w, h, type, comment) {
 		var svg = "";
-		svg += drawRect(x, y, 70, 30, 0, 'white', false);
+		svg += template('rect', {
+			x: x,
+			y: y,
+			width: 70,
+			height: 30,
+			ry: 0,
+			fill: 'white'
+		});
 	
-		svg += drawRect(x, y, w, h, 0, 'none', true);
+		svg += template('strokeRect', {
+			x: x,
+			y: y,
+			width: w,
+			height: h,
+			ry: 0,
+			fill: 'none'
+		});
 	
-		svg += drawLine(x, y+30, x+60, y+30, false);
-		svg += drawLine(x+60, y+30, x+70, y+20, false);
-		svg += drawLine(x+70, y+20, x+70, y, false);
+		svg += template('line', {
+			x1: x,
+			y1: y+30,
+			x2: x+60,
+			y2: y+30
+		});
+		svg += template('line', {
+			x1: x+60,
+			y1: y+30,
+			x2: x+70,
+			y2: y+20
+		});
+		svg += template('line', {
+			x1: x+70,
+			y1: y+20,
+			x2: x+70,
+			y2: y
+		});
 	
-		svg += drawText(x+30, y+20, type, true);
+		svg += template('centeredText', {
+			x: x+30,
+			y: y+20,
+			text: type
+		});
 	
 		if(comment != "") {
-			svg += drawText(x+90, y+20, '['+comment+']', false);
+			svg += template('text', {
+				x: x+90,
+				y: y+20,
+				text: '['+comment+']'
+			});
 		}
 		return svg;
 	}
@@ -107,16 +155,40 @@ var Sequence = (function() {
 		var r = '<g transform="translate('+x+','+y+')">';
 		var lineY = 7+(text.length-1)*20;
 		if(isToSelf) {
-			r+= drawLine(0, lineY, 30, lineY, isDotted);
-			r+= drawLine(30, lineY, 30, lineY+20, isDotted);
-			r+= drawLine(30, lineY+20, 0, lineY+20, isDotted);
+			r+= template((isDotted ? 'dottedLine' : 'line'), {
+				x1: 0,
+				y1: lineY,
+				x2: 30,
+				y2: lineY
+			});
+			r+= template((isDotted ? 'dottedLine' : 'line'), {
+				x1: 30,
+				y1: lineY,
+				x2: 30,
+				y2: lineY+20
+			});
+			r+= template((isDotted ? 'dottedLine' : 'line'), {
+				x1: 30,
+				y1: lineY+20,
+				x2: 0,
+				y2: lineY+20
+			});
 			r+= drawTriangle(0, lineY+20, false);
 		} else {
-			r+= drawLine(0, lineY, (partSize+interPart)*width, lineY, isDotted);
+			r+= template((isDotted ? 'dottedLine' : 'line'), {
+				x1: 0,
+				y1: lineY,
+				x2: (partSize+interPart)*width,
+				y2: lineY
+			});
 			r+= drawTriangle((isToTheRight ? (partSize+interPart)*width : 0), lineY, isToTheRight);
 		}
 		for(var i in text) {
-			r+= drawText((partSize+interPart)*width/2, i*20, text[i], true);
+			r+= template('centeredText', {
+				x: (partSize+interPart)*width/2,
+				y: i*20,
+				text: text[i]
+			});
 		}
 		r+='</g>';
 		return r;
@@ -441,7 +513,7 @@ var Sequence = (function() {
 				+ (height + 10)
 				+ '">';
 			finalSVG += '<defs>';
-			finalSVG += gradient('grad1');
+			finalSVG += template('gradient', {id:'grad1'});
 			finalSVG += '</defs>';
 			finalSVG += svg;
 			finalSVG += '</svg>';
