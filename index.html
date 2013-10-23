@@ -42,8 +42,7 @@ parallel {
 	</div>
 
 <script>
-function parseText() {
-	
+$("#refresh").click(function(event) {
 	$("#drawing").html("<p>loading...</p>");
 	$("#errors").html("<p>No errors</p>");
 	
@@ -52,21 +51,12 @@ function parseText() {
 		$("#errors").html("<p>" + Sequence.getErrors() + "</p>");
 	
 	$("#drawing").html(Sequence.getSVG());
-}
+	event.preventDefault();
+});
 
-function openSVG() {
+$("#open").click(function(event) {
 	open("data:image/svg+xml," + encodeURIComponent($("#drawing").html()));
-}
-
-$(document).ready(function(){
-	$("#refresh").click(function(event) {
-		parseText();
-		event.preventDefault();
-	});
-	$("#open").click(function(event) {
-		openSVG();
-		event.preventDefault();
-	});
+	event.preventDefault();
 });
 </script>
 </body>
