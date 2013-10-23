@@ -35,7 +35,7 @@ var Sequence = (function() {
 			var m = source.match(regexp);
 			for(var i in m) {
 				var k = m[i].substr(2);
-				source = source.replace(m[i], values[k] || '');
+				source = source.replace(m[i], typeof values[k] == 'string' ? filter(values[k]) : values[k] || ''); //Filter text
 			}
 			return source;
 		}
@@ -50,12 +50,13 @@ var Sequence = (function() {
 
 	//SVG functions ---------------------------------------------------------------
 
-	function drawTriangle(x, y, isToTheRight) {
+	function drawTriangle(x, y, isToTheRight, isOpen) {
 		var x1 = (isToTheRight ? x-15 : x+15);
 		return '<polygon points="' + x1 + ',' + (y-5) + ' '
 				+ x + ',' + y + ' '
 				+ x1 + ',' + (y+5) + '" '
-	  			+ 'style="fill:black;"></polygon>';
+				+ 'style="fill:'+ (isOpen ? 'white' : 'black')
+				+';stroke:black;stroke-width:2"></polygon>';
 	}
 
 	function actor(x, y, height, text) {
@@ -151,7 +152,7 @@ var Sequence = (function() {
 		return svg;
 	}
 
-	function arrow(x, y, width, text, isToTheRight, isDotted, isToSelf) {
+	function arrow(x, y, width, text, isToTheRight, isDotted, isToSelf, isDoubleArrow, isOpen) {
 		var r = '<g transform="translate('+x+','+y+')">';
 		var lineY = 7+(text.length-1)*20;
 		if(isToSelf) {
@@ -173,7 +174,7 @@ var Sequence = (function() {
 				x2: 0,
 				y2: lineY+20
 			});
-			r+= drawTriangle(0, lineY+20, false);
+			r+= drawTriangle(0, lineY+20, false, false);
 		} else {
 			r+= template((isDotted ? 'dottedLine' : 'line'), {
 				x1: 0,
@@ -181,7 +182,12 @@ var Sequence = (function() {
 				x2: (partSize+interPart)*width,
 				y2: lineY
 			});
-			r+= drawTriangle((isToTheRight ? (partSize+interPart)*width : 0), lineY, isToTheRight);
+			if(isDoubleArrow) {
+				r+= drawTriangle((partSize+interPart)*width, lineY, true, isOpen);
+				r+= drawTriangle(0, lineY, false, isOpen);
+			} else {
+				r+= drawTriangle((isToTheRight ? (partSize+interPart)*width : 0), lineY, isToTheRight, isOpen);
+			}
 		}
 		for(var i in text) {
 			r+= template('centeredText', {
@@ -220,7 +226,7 @@ var Sequence = (function() {
 
 	//Signal
 
-	function Signal(participant1, participant2, text, isDotted) {
+	function Signal(participant1, participant2, text, isDotted, isDoubleArrow, isOpen) {
 		this.participant1 = participant1;
 		this.participant2 = participant2;
 		this.text = text.split("\\n");
@@ -244,7 +250,9 @@ var Sequence = (function() {
 					this.text,
 					minPosition == this.participant1.position,
 					this.isDotted,
-					participant1.name == participant2.name);
+					participant1.name == participant2.name,
+					isDoubleArrow,
+					isOpen);
 		}
 	}
 
@@ -440,21 +448,27 @@ var Sequence = (function() {
 					this.addParticipant(new Participant(res[1]));
 					this.addSignal(new State(this.getParticipant(res[1]), res[2]));
 				}],
-			['^[ \t]*([^- ]*)[ ]*(-)?->[ ]*([^: ]*)[ ]*:[ ]*(.*)$',
-				4,
+			['^[ \t]*([^- <]*)[ ]*(<)?(-)?->(>)?[ ]*([^: ]*)[ ]*:[ ]*(.*)$',
+				6,
 				function(res) {
 					this.addParticipant(new Participant(res[1]));
-					this.addParticipant(new Participant(res[3]));
+					this.addParticipant(new Participant(res[5]));
 					this.addSignal(new Signal(
 						this.getParticipant(res[1]),
-						this.getParticipant(res[3]),
-						res[4],
-						res[2] == "-"
+						this.getParticipant(res[5]),
+						res[6],
+						res[3] == '-',
+						res[2] == '<',
+						res[4] == '>' //open
 					));
 				}],
-			['^[ \t]*$', 0, function(res) {}]
+			['^#\.*$', 0, function(res) {}], //Comment
+			['^[ \t]*$', 0, function(res) {}] //Blank line
 		];
 		this.autonumber = null;
+		for(var i in this.patterns) {
+			this.patterns[i][0] = new RegExp(this.patterns[i][0]);
+		}
 	
 		this.addParticipant = function(participant) {
 			found = false;
@@ -508,10 +522,8 @@ var Sequence = (function() {
 		}
 	
 		this.parseLine = function(line) {
-			line = filter(line);
 			for(var i in this.patterns) {
-				var pat = new RegExp(this.patterns[i][0]);
-				var res = pat.exec(line);
+				var res = this.patterns[i][0].exec(line);
 				if(res != null && res.length-1 == this.patterns[i][1]) {
 					var error = this.patterns[i][2].call(this, res);
 					if(!error) return true;
@@ -562,8 +574,10 @@ var Sequence = (function() {
 	var _schema = null;
 	var _errors = null;
 	var parse = function(text) {
+		console.time('parseTime');
 		_schema = new Schema();
 		_errors = _schema.parseLines(text);
+		console.timeEnd('parseTime');
 	};
 	
 	var getErrors = function() {
@@ -574,5 +588,7 @@ var Sequence = (function() {
 		return _schema.getSVG();
 	};
 	
-	return {parse: parse, getErrors: getErrors, getSVG: getSVG};
+	var api = {parse: parse, getErrors: getErrors, getSVG: getSVG};
+	if(typeof module != 'undefined') module.exports = api;
+	return api;
 })();
