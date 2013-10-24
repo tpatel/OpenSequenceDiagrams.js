@@ -256,6 +256,32 @@ var Sequence = (function() {
 		}
 	}
 
+	//Else clause
+
+	function Else(condition, parent) {
+		this.parent = parent;   // We will get the depth from there.
+		this.text = condition;  // A list of string defining the condition.
+		this.height = 30;
+	}
+
+	Else.prototype.getHeight = function() {
+		return this.height;
+	}
+
+	Else.prototype.getSVG = function(position, width) {
+		var left = 10*(this.parent.getDepth()+2);
+		return template('dottedLine', {
+				x1: left,
+				y1: position,
+				x2: left + width - left*2,
+				y2: position
+			}) + template('text', {
+				x: left + 90,
+				y: position + 20,
+				text: '[' + this.text + ']'
+			});
+	}
+
 	//State
 
 	function State(participant, text) {
@@ -377,6 +403,31 @@ var Sequence = (function() {
 		return svg;
 	}
 
+	//Alt container
+
+	function AltContainer(parent, type, cond) {
+		SimpleContainer.call(this, parent, type, "");
+		this.condition = cond;
+	}
+
+	AltContainer.prototype = new SimpleContainer();
+
+	AltContainer.prototype.getSVG = function(position, width) {
+		var svg = "";
+		svg += specialRectangle(10*(this.getDepth()+1),
+				position,
+				width-((this.getDepth()+1)*2*10),
+				this.getHeight()-10,
+				this.type,
+				this.condition);
+		position += 50;
+		for(var i in this.children) {
+			svg += this.children[i].getSVG(position, width);
+			position += this.children[i].getHeight();
+		}
+		return svg;
+	}
+
 	//Schema
 
 	function Schema() {
@@ -422,6 +473,19 @@ var Sequence = (function() {
 					var p = new SimpleContainer(this.signals, "loop", res[1]);
 					this.addSignal(p);
 					this.signals = p;
+				}],
+			['[ \t]*alt[ ]*(.+)[ ]*$',
+				1,
+				function(res) {
+					var p = new AltContainer(this.signals, "alt", res[1]);
+					this.addSignal(p);
+					this.signals = p;
+				}],
+			['[ \t]*else[ ]*(.+)[ ]*$',
+				1,
+				function(res) {
+					if(!(this.signals instanceof AltContainer)) { res[0]=null; }
+					else { this.addSignal(new Else(res[1], this.signals.getParent())); }
 				}],
 			['^[ \t]*end[ ]*$',
 				0,
