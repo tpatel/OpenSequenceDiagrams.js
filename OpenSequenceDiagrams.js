@@ -691,15 +691,13 @@ var Sequence = (function() {
 	
 	//Public API
 	
-	var parse = function(text) {
+	var parse = function(text, destinationId) {
 		console.time('parseTime');
 		var _schema = new Schema();
 		var _errors = _schema.parseLines(text);
+		document.getElementById(destinationId).innerHTML = _schema.getSVG();
 		console.timeEnd('parseTime');
-		return {
-			getErrors: function() {return _errors;},
-			getSVG: function() {return _schema.getSVG();}
-		};
+		return _errors;
 	};
 	
 	var api = {parse: parse};

@@ -238,11 +238,9 @@ function parse(idIn, idErr, idOut) {
 	$(idOut).html("<p>loading...</p>");
 	$(idErr).html("<p>No errors</p>");
 	
-	var seq = Sequence.parse($(idIn).val());
-	if(seq.getErrors() != "")
-		$(idErr).html("<p>" + seq.getErrors() + "</p>");
-	
-	$(idOut).html(seq.getSVG());
+	var errors = Sequence.parse($(idIn).val(), idOut.substr(1));
+	if(errors != "")
+		$(idErr).html("<p>" + errors + "</p>");
 }
 
 for(var i=0; i<15; i++) {
