@@ -19,28 +19,57 @@ var Sequence = (function() {
 	//Templating system
 	
 	var template = (function() {
-		var templates = { //User input must be at the last position to avoid injection
+		//Undefined behaviour when using two times the same key in a template '::key [...] ::key' (so don't do that)
+		//User input must be at the last position to avoid injection
+		var templates = {
 			text: '<text x="::x" y="::y">::text</text>',
 			centeredText: '<text x="::x" y="::y" style="text-anchor:middle">::text</text>',
 			rect: '<rect x="::x" y="::y" width="::width" height="::height" ry="::ry" style="fill: ::fill;"></rect>',
 			strokeRect: '<rect x="::x" y="::y" width="::width" height="::height" ry="::ry" style="fill: ::fill;stroke:black;stroke-width:2;"></rect>',
 			gradient: '<linearGradient id="::id" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" style="stop-color:rgb(200, 200, 200);stop-opacity:1"></stop><stop offset="100%" style="stop-color:rgb(100,100,100);stop-opacity:1"></stop></linearGradient>',
 			line: '<line x1="::x1" y1="::y1" x2="::x2" y2="::y2" style="stroke:black;stroke-width:2"></line>',
-			dottedLine: '<line x1="::x1" y1="::y1" x2="::x2" y2="::y2" style="stroke:black;stroke-width:2" stroke-dasharray="10,5"></line>'
+			dottedLine: '<line x1="::x1" y1="::y1" x2="::x2" y2="::y2" style="stroke:black;stroke-width:2" stroke-dasharray="10,5"></line>',
+			triangle: '<polygon points="::x1,::y1 ::x2,::y2 ::x3,::y3" style="fill: ::fill;stroke:black;stroke-width:1px"></polygon>',
+			document: '<svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="::width" height="::height"><defs>::defs</defs>::svg</svg>',
+			translate: '<g transform="translate(::x,::y)">::child</g>'
 		};
 		var regexp = /::[a-zA-Z0-9]+/g;
 	
-		function getTemplate(name, values) {
-			var source = templates[name];
+		function getTemplate(values) {
+			if(values._hide) return '';
+			else if(values._text) return values._text;
+			var source = templates[values._name]; //_name is the template name
 			var m = source.match(regexp);
 			for(var i in m) {
-				var k = m[i].substr(2);
-				source = source.replace(m[i], typeof values[k] == 'string' ? filter(values[k]) : values[k] || ''); //Filter text
+				var k = m[i].substr(2); //key to look up
+				if(typeof values[k] === 'object') {
+					source = source.replace(
+						m[i],
+						getTemplates(values[k])
+					);
+				} else {
+					source = source.replace(
+						m[i],
+						typeof values[k] == 'string' ? filter(values[k]) : (typeof values[k] == 'number' ? values[k] : '')
+					); //Filter text
+				}
 			}
 			return source;
 		}
 		
-		return getTemplate;
+		function getTemplates(values) {
+			if(Object.prototype.toString.call(values) === '[object Array]') {
+				var result = '';
+				for(var i=0; i<values.length; i++) {
+					result += getTemplate(values[i]);
+				}
+				return result;
+			} else {
+				return getTemplate(values);
+			}
+		}
+		
+		return getTemplates;
 	})();
 
 	//Constansts ------------------------------------------------------------------
@@ -51,132 +80,153 @@ var Sequence = (function() {
 	//SVG functions ---------------------------------------------------------------
 
 	function drawTriangle(x, y, isToTheRight, isOpen) {
-		var x1 = (isToTheRight ? x-15 : x+15);
-		return '<polygon points="' + x1 + ',' + (y-5) + ' '
-				+ x + ',' + y + ' '
-				+ x1 + ',' + (y+5) + '" '
-				+ 'style="fill:'+ (isOpen ? 'white' : 'black')
-				+';stroke:black;stroke-width:2"></polygon>';
+		return template({
+			_name: 'translate',
+			x: x,
+			y: y,
+			child: {
+				_name: 'triangle',
+				x1: (isToTheRight ? -15 : 15),
+				y1: -5,
+				x2: 0,
+				y2: 0,
+				x3: (isToTheRight ? -15 : 15),
+				y3: +5,
+				fill: (isOpen ? 'white' : 'black')
+			}
+		});
 	}
 
 	function actor(x, y, height, text) {
-		var end = text.length * 20 + 10;
-		var r = '<g transform="translate('+x+','+y+')">';
-		r+= template('line', {
-			x1: partSize/2,
-			y1: end,
-			x2: partSize/2,
-			y2: height
+		return template({
+			_name: 'translate',
+			x: x,
+			y: y,
+			child: [{
+					_name: 'line',
+					x1: partSize/2,
+					y1: text.length * 20 + 10,
+					x2: partSize/2,
+					y2: height
+				}, {
+					_text: rectWithText(0, 0, text, true)
+				}, {
+					_text: rectWithText(0, height, text, true)
+				}
+			]
 		});
-		r += rectWithText(0, 0, text, true);
-		r += rectWithText(0, height, text, true);
-		r+='</g>';
-		return r;
 	}
 
 	function rectWithText(x, y, text, gradient) {
 		var end = text.length * 20 + 10;
-		var r = '<g transform="translate('+x+','+y+')">';
-		r+= template('strokeRect', {
-			x: 0,
-			y: 0,
-			width: partSize,
-			height: end,
-			ry: 5,
-			fill: (gradient ? 'url(#grad1)' : 'white')
-		});
-		
+		var definition = {
+			_name: 'translate',
+			x: x,
+			y: y,
+			child: [
+				{
+					_name: 'strokeRect',
+					x: 0,
+					y: 0,
+					width: partSize,
+					height: end,
+					ry: 5,
+					fill: (gradient ? 'url(#grad1)' : 'white')
+				}
+			]
+		};
 		for(var i in text) {
-			r+= template('centeredText', {
+			definition.child.push({
+				_name: 'centeredText',
 				x: partSize/2,
 				y: i*20+20,
 				text: text[i]
 			});
 		}
-		r+='</g>';
-		return r;
+		return template(definition);
 	}
 
 	function specialRectangle(x, y, w, h, type, comment) {
-		var svg = "";
-		svg += template('rect', {
+		return template({
+			_name: 'translate',
 			x: x,
 			y: y,
-			width: 70,
-			height: 30,
-			ry: 0,
-			fill: 'white'
-		});
-	
-		svg += template('strokeRect', {
-			x: x,
-			y: y,
-			width: w,
-			height: h,
-			ry: 0,
-			fill: 'none'
-		});
-	
-		svg += template('line', {
-			x1: x,
-			y1: y+30,
-			x2: x+60,
-			y2: y+30
-		});
-		svg += template('line', {
-			x1: x+60,
-			y1: y+30,
-			x2: x+70,
-			y2: y+20
-		});
-		svg += template('line', {
-			x1: x+70,
-			y1: y+20,
-			x2: x+70,
-			y2: y
-		});
-	
-		svg += template('centeredText', {
-			x: x+30,
-			y: y+20,
-			text: type
-		});
-	
-		if(comment != "") {
-			svg += template('text', {
-				x: x+90,
-				y: y+20,
+			child: [{
+				_name: 'rect',
+				x: 0,
+				y: 0,
+				width: 70,
+				height: 30,
+				ry: 0,
+				fill: 'white'
+			}, {
+				_name: 'strokeRect',
+				x: 0,
+				y: 0,
+				width: w,
+				height: h,
+				ry: 0,
+				fill: 'none'
+			}, {
+				_name: 'line',
+				x1: 0,
+				y1: 30,
+				x2: 60,
+				y2: 30
+			}, {
+				_name: 'line',
+				x1: 60,
+				y1: 30,
+				x2: 70,
+				y2: 20
+			}, {
+				_name: 'line',
+				x1: 70,
+				y1: 20,
+				x2: 70,
+				y2: 0
+			}, {
+				_name:'centeredText',
+				x: 30,
+				y: 20,
+				text: type
+			}, {
+				_name: 'text',
+				_hide: (comment == ''),
+				x: 90,
+				y: 20,
 				text: '['+comment+']'
-			});
-		}
-		return svg;
+			}]
+		});
 	}
 
 	function arrow(x, y, width, text, isToTheRight, isDotted, isToSelf, isDoubleArrow, isOpen) {
 		var r = '<g transform="translate('+x+','+y+')">';
 		var lineY = 7+(text.length-1)*20;
 		if(isToSelf) {
-			r+= template((isDotted ? 'dottedLine' : 'line'), {
+			r+= template([{
+				_name: (isDotted ? 'dottedLine' : 'line'),
 				x1: 0,
 				y1: lineY,
 				x2: 30,
 				y2: lineY
-			});
-			r+= template((isDotted ? 'dottedLine' : 'line'), {
+			}, {
+				_name: (isDotted ? 'dottedLine' : 'line'),
 				x1: 30,
 				y1: lineY,
 				x2: 30,
 				y2: lineY+20
-			});
-			r+= template((isDotted ? 'dottedLine' : 'line'), {
+			}, {
+				_name: (isDotted ? 'dottedLine' : 'line'),
 				x1: 30,
 				y1: lineY+20,
 				x2: 0,
 				y2: lineY+20
-			});
+			}]);
 			r+= drawTriangle(0, lineY+20, false, false);
 		} else {
-			r+= template((isDotted ? 'dottedLine' : 'line'), {
+			r+= template({
+				_name: (isDotted ? 'dottedLine' : 'line'),
 				x1: 0,
 				y1: lineY,
 				x2: (partSize+interPart)*width,
@@ -190,7 +240,8 @@ var Sequence = (function() {
 			}
 		}
 		for(var i in text) {
-			r+= template('centeredText', {
+			r+= template({
+				_name: 'centeredText',
 				x: (partSize+interPart)*width/2,
 				y: i*20,
 				text: text[i]
@@ -270,16 +321,18 @@ var Sequence = (function() {
 
 	Else.prototype.getSVG = function(position, width) {
 		var left = 10*(this.parent.getDepth()+2);
-		return template('dottedLine', {
+		return template([{
+				_name: 'dottedLine',
 				x1: left,
 				y1: position,
 				x2: left + width - left*2,
 				y2: position
-			}) + template('text', {
+			}, {
+				_name: 'text',
 				x: left + 90,
 				y: position + 20,
 				text: '[' + this.text + ']'
-			});
+			}]);
 	}
 
 	//State
@@ -620,18 +673,19 @@ var Sequence = (function() {
 			
 			if(!svg) return 'Nothing to draw yet.';
 		
-			var finalSVG =
-				'<svg  xmlns="http://www.w3.org/2000/svg" version="1.1" width="'
-				+ width
-				+ '" height="'
-				+ (height + 10)
-				+ '">';
-			finalSVG += '<defs>';
-			finalSVG += template('gradient', {id:'grad1'});
-			finalSVG += '</defs>';
-			finalSVG += svg;
-			finalSVG += '</svg>';
-			return finalSVG;
+			return template({
+				_name: 'document',
+				width: width,
+				height: height+10,
+				defs: {
+					_name: 'gradient',
+					id: 'grad1'
+				},
+				svg: {
+					_text: svg
+				}
+			});
+			
 		}
 	}
 	
