@@ -72,7 +72,7 @@ var Sequence = (function() {
 		return getTemplates;
 	})();
 
-	//Constansts ------------------------------------------------------------------
+	//Constants -------------------------------------------------------------------
 
 	var partSize = 125; //Participant width
 	var interPart = 25; //Horizontal interval between 2 participants
